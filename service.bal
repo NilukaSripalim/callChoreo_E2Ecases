@@ -1,31 +1,29 @@
 import ballerina/http;
+import ballerina/io;
+import ballerina/lang.runtime;
 
-type RiskResponse record {
-boolean hasRisk;
-};
+# A service representing a network-accessible API
+# bound to port `9090`.
+service / on new http:Listener(9090) {
 
-type RiskRequest record {
-string ip;
-};
+    # A resource for generating greetings
+    # + name - the input string name
+    # + return - string name with hello message or error
+    resource function get greeting(string name) returns string|error {
+        // Send a response back to the caller.
+        if name is "" {
+            return error("name should not be empty!");
+        }
+        return "Hello, " + name;
+    }
 
-type ipGeolocationResp record {
-string ip;
-string country_code2;
-};
-
-final string geoApiKey = "f5087b960eb549c3a40d1555f59dfb4a";
-
-service / on new http:Listener(8090) {
-resource function post risk(@http:Payload RiskRequest req) returns RiskResponse|error? {
-
-     string ip = req.ip;
-     http:Client ipGeolocation = check new ("https://api.ipgeolocation.io");
-     ipGeolocationResp geoResponse = check ipGeolocation->get(string `/ipgeo?apiKey=${geoApiKey}&ip=${ip}&fields=country_code2`);
-     
-     RiskResponse resp = {
-          // hasRisk is true if the country code of the IP address is not the specified country code.
-          hasRisk: geoResponse.country_code2 != "<Specify a country code of your choice>"
-     };
-     return resp;
-}
+    resource function post testEchoAPI(@http:Payload json jsonObj, http:Caller caller) returns error? {
+       io:println(string:concat("testEchoAPI : ", jsonObj.toJsonString()));
+       http:Response quickResponse = new;
+       quickResponse.setJsonPayload({"status":"success"});
+       quickResponse.statusCode = http:STATUS_OK;
+       // Simulate a slow operation that takes longer than the specified timeout
+       runtime:sleep(2);
+       return caller->respond(quickResponse);
+    }
 }
