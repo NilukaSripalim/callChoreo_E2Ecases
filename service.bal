@@ -1,24 +1,31 @@
 import ballerina/http;
-import ballerina/lang.value;
- 
+
+type RiskResponse record {
+boolean hasRisk;
+};
+
+type RiskRequest record {
+string ip;
+};
+
+type ipGeolocationResp record {
+string ip;
+string country_code2;
+};
+
+final string geoApiKey = "<API key from ipgeolocation.io>";
+
 service / on new http:Listener(8090) {
- 
-   resource function post iptocountry(http:Caller caller, http:Request request) returns error? {
-       string jsonString = check request.getTextPayload();
-       json jsonObj = check value:fromJsonString(jsonString);
-       string ip = <string> check jsonObj.ip;
-      //  string ip = "134.201.250.155";
-       
-       http:Client httpEndpoint = check new ("http://api.ipstack.com");
-       http:Response getResponse = check httpEndpoint->get("/"+ip+"?access_key=f5087b960eb549c3a40d1555f59dfb4a");
-  
-       var jsonPayload = check getResponse.getJsonPayload();
-        
-       string country = <string> check jsonPayload.country_name;
-      
-      http:Response response = new;
-        response.statusCode = http:STATUS_OK;
-       response.setJsonPayload  ({"country" : country});
-       check caller->respond(response);
-   }
+resource function post risk(@http:Payload RiskRequest req) returns RiskResponse|error? {
+
+     string ip = req.ip;
+     http:Client ipGeolocation = check new ("https://api.ipgeolocation.io");
+     ipGeolocationResp geoResponse = check ipGeolocation->get(string `/ipgeo?apiKey=${geoApiKey}&ip=${ip}&fields=country_code2`);
+     
+     RiskResponse resp = {
+          // hasRisk is true if the country code of the IP address is not the specified country code.
+          hasRisk: geoResponse.country_code2 != "<Specify a country code of your choice>"
+     };
+     return resp;
+}
 }
