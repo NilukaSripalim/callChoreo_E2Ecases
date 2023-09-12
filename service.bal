@@ -13,7 +13,7 @@ string ip;
 string country_code2;
 };
 
-final string geoApiKey = "<API key from ipgeolocation.io>";
+final string geoApiKey = "f5087b960eb549c3a40d1555f59dfb4a";
 
 service / on new http:Listener(8090) {
 resource function post risk(@http:Payload RiskRequest req) returns RiskResponse|error? {
