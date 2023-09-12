@@ -1,29 +1,44 @@
-import ballerina/http;
 import ballerina/io;
-import ballerina/lang.runtime;
+import ballerina/http;
+import ballerinax/http;
 
-# A service representing a network-accessible API
-# bound to port `9090`.
-service / on new http:Listener(9090) {
+// Define a Ballerina service that listens for incoming HTTP requests.
+service /currentCountry on new http:Listener(8080) {
 
-    # A resource for generating greetings
-    # + name - the input string name
-    # + return - string name with hello message or error
-    resource function get greeting(string name) returns string|error {
-        // Send a response back to the caller.
-        if name is "" {
-            return error("name should not be empty!");
+    // Define a resource that responds to GET requests.
+    @http:ResourceConfig {
+        methods: ["GET"],
+        path: "/getCountry"
+    }
+    resource function get getCurrentCountry(http:Caller caller, http:Request request) returns json {
+        // Extract the client's IP address from the request.
+        string clientIP = check request.remoteAddress.toString();
+        
+        // Define the URL of an IP geolocation API (example: ipinfo.io).
+        string ipGeolocationApiUrl = "https://ipinfo.io/" + clientIP + "/json";
+        
+        // Make an HTTP GET request to the API.
+        http:Request apiRequest = new;
+        apiRequest.setUri(ipGeolocationApiUrl);
+        
+        http:Response apiResponse = check http:Client.get(apiRequest);
+        
+        // Check if the HTTP request was successful.
+        if (apiResponse.statusCode == http:StatusOK) {
+            var jsonPayload = check apiResponse.getJsonPayload();
+            check caller->respond(jsonPayload);
+        } else {
+            // Handle the error case.
+            http:Response errorResponse = new;
+            errorResponse.statusCode = http:STATUS_INTERNAL_SERVER_ERROR;
+            errorResponse.setJsonPayload({"error": "Failed to retrieve country information"});
+            check caller->respond(errorResponse);
         }
-        return "Hello, " + name;
     }
+}
 
-    resource function post testEchoAPI(@http:Payload json jsonObj, http:Caller caller) returns error? {
-       io:println(string:concat("testEchoAPI : ", jsonObj.toJsonString()));
-       http:Response quickResponse = new;
-       quickResponse.setJsonPayload({"status":"success"});
-       quickResponse.statusCode = http:STATUS_OK;
-       // Simulate a slow operation that takes longer than the specified timeout
-       runtime:sleep(2);
-       return caller->respond(quickResponse);
-    }
+public function main() {
+    http:Listener listener = new http:Listener(8080);
+    listener.start();
+    io:println("Server started on port 8080");
 }
