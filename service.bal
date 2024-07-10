@@ -16,7 +16,7 @@ service /iptocountryService on new http:Listener(8080) {
         postRequest.setUri("http://api.ipstack.com");
         postRequest.setHeader("Content-Type", "application/json");
         postRequest.setPayload(jsonString);
-        postRequest.addQueryParam("access_key", "f5087b960eb549c3a40d1555f59dfb4a");
+        postRequest.addQueryParam("access_key", "d0735e343fd8481bbdba12afebb6e7ff");
 
         http:Response postResponse = check http:Client.post(postRequest);
 
